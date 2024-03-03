@@ -12,6 +12,7 @@ from scipy.ndimage import convolve1d
 #  perform RGB to grayscale conversion
 ################################################################################
 def rgb2gray(img_color) :
+    img_gray = np.dot(img_color[...,:3], [0.299, 0.587, 0.114])
     # input:
     #    img_color - a h x w x 3 numpy ndarray (dtype = np.unit8) holding
     #                the color image
@@ -21,11 +22,19 @@ def rgb2gray(img_color) :
 
     # TODO: using the Y channel of the YIQ model to perform the conversion
 
+    img_gray = np.dot(img_color[..., :3], [0.299, 0.587, 0.114])
+    # def temp(channels):
+    #     return np.dot(channels, [0.299, 0.587, 0.114])
+    # img_gray = np.apply_along_axis(temp, -1, img_color)
+
     return img_gray
 
 ################################################################################
 #  perform 1D smoothing using a 1D horizontal Gaussian filter
 ################################################################################
+def findFilterSize(sigma):
+    return int(sigma * (2*np.log(1000))**0.5)
+
 def smooth1D(img, sigma) :
     # input :
     #    img - a h x w numpy ndarray holding the image to be smoothed
@@ -35,10 +44,15 @@ def smooth1D(img, sigma) :
 
 
     # TODO: form a 1D horizontal Guassian filter of an appropriate size
-
+    n = findFilterSize(sigma)
+    # arange(-n, n+1) = [-n, -n+1, ..., n-1, n] due to the 0 mean value of the gaussian distribution we set
+    kernal = np.exp(-np.arange(-n, n+1)**2 / (2 * sigma**2))
+    kernal /= kernal.sum()
     # TODO: convolve the 1D filter with the image;
     #       apply partial filter for the image border
-
+    
+    
+    # img_smoothed = convolve1d(img, [1, 2, 1], axis=-1, mode='nearest')
     return img_smoothed
 
 ################################################################################
