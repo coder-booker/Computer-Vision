@@ -32,33 +32,36 @@ def rgb2gray(img_color) :
 ################################################################################
 #  perform 1D smoothing using a 1D horizontal Gaussian filter
 ################################################################################
-def findFilterSize(sigma):
-    return int(sigma * (2*np.log(1000))**0.5)
-
-def smooth1D(img, sigma) :
+def smooth1D(img:np.ndarray, sigma) -> np.ndarray: 
     # input :
     #    img - a h x w numpy ndarray holding the image to be smoothed
     #    sigma - sigma value of the 1D Gaussian function
     # return:
     #    img_smoothed - a h x w numpy ndarry holding the 1D smoothing result
 
-
-    # TODO: form a 1D horizontal Guassian filter of an appropriate size
-    n = findFilterSize(sigma)
-    # arange(-n, n+1) = [-n, -n+1, ..., n-1, n] due to the 0 mean value of the gaussian distribution we set
-    kernal = np.exp(-np.arange(-n, n+1)**2 / (2 * sigma**2))
-    kernal /= kernal.sum()
-    # TODO: convolve the 1D filter with the image;
-    #       apply partial filter for the image border
+    n = int(sigma * (2*np.log(1000))**0.5)
+    # arange(-n, n+1) due to the 0 mean value of the gaussian distribution we set
+    kernal = np.exp(-(np.arange(-n, n+1)**2) / (2 * sigma**2))
     
+    # # normalize method 1: 
+    # norm_mat = kernal / kernal.sum()
+    # img_smoothed = convolve1d(img, kernal, axis=-1, mode='constant', Cval=0, origin=0)
     
-    # img_smoothed = convolve1d(img, [1, 2, 1], axis=-1, mode='nearest')
+    # normalize method 2: (partial filter)
+    img_smoothed = convolve1d(img, kernal, axis=-1, mode='constant', cval=0, origin=0)
+    
+    norm_mat = np.ones(img.shape[1])
+    norm_mat = convolve1d(norm_mat, kernal, axis=-1, mode='constant', cval=0, origin=0)
+    norm_mat = np.tile(norm_mat, (img.shape[0], 1))
+    
+    img_smoothed /= norm_mat
+    
     return img_smoothed
 
 ################################################################################
 #  perform 2D smoothing using 1D convolutions
 ################################################################################
-def smooth2D(img, sigma) :
+def smooth2D(img:np.ndarray, sigma) :
     # input:
     #    img - a h x w numpy ndarray holding the image to be smoothed
     #    sigma - sigma value of the Gaussian function
@@ -66,9 +69,10 @@ def smooth2D(img, sigma) :
     #    img_smoothed - a h x w numpy array holding the 2D smoothing result
 
     # TODO: smooth the image along the vertical direction
-
+    img_smoothed = smooth1D(img, sigma)
     # TODO: smooth the image along the horizontal direction
-
+    img_smoothed = smooth1D(img_smoothed.T, sigma).T
+    
     return img_smoothed
 
 ################################################################################
@@ -216,8 +220,8 @@ def main() :
     print('perform RGB to grayscale conversion...')
     img_gray = rgb2gray(img_color)
     # uncomment the following 2 lines to show the grayscale image
-    # plt.imshow(np.float32(img_gray), cmap = 'gray')
-    # plt.show()
+    plt.imshow(np.float32(img_gray), cmap = 'gray')
+    plt.show()
 
     # perform corner detection
     print('perform Harris corner detection...')
