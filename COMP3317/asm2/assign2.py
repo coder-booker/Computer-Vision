@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import convolve1d
+from pathlib import Path
 
 ################################################################################
 #  perform RGB to grayscale conversion
@@ -23,9 +24,6 @@ def rgb2gray(img_color) :
     # TODO: using the Y channel of the YIQ model to perform the conversion
 
     img_gray = np.dot(img_color[..., :3], [0.299, 0.587, 0.114])
-    # def temp(channels):
-    #     return np.dot(channels, [0.299, 0.587, 0.114])
-    # img_gray = np.apply_along_axis(temp, -1, img_color)
 
     return img_gray
 
@@ -40,6 +38,7 @@ def smooth1D(img:np.ndarray, sigma) -> np.ndarray:
     #    img_smoothed - a h x w numpy ndarry holding the 1D smoothing result
 
     n = int(sigma * (2*np.log(1000))**0.5)
+    
     # arange(-n, n+1) due to the 0 mean value of the gaussian distribution we set
     kernal = np.exp(-(np.arange(-n, n+1)**2) / (2 * sigma**2))
     
@@ -88,17 +87,70 @@ def harris(img, sigma, threshold) :
     #              (up to sub-pixel accuracy) and cornerness value of each corner
 
     # TODO: compute Ix & Iy
+    
+    Iy, Ix = np.gradient(img)
+    
 
     # TODO: compute Ix2, Iy2 and IxIy
+    
+    Iy2, Ix2 = np.square(Iy), np.square(Ix)
+    IxIy = np.multiply(Ix, Iy)
+    
 
     # TODO: smooth the squared derivatives
+    
+    Ix2, Iy2, IxIy = smooth2D(Ix2, sigma), smooth2D(Iy2, sigma), smooth2D(IxIy, sigma)
+
 
     # TODO: compute cornesness functoin R
+    
+    R = (Ix2*Iy2 - np.square(IxIy)) - 0.04 * np.square(Ix2 + Iy2) # k = 0.04
+
 
     # TODO: mark local maxima as corner candidates;
     #       perform quadratic approximation to local corners upto sub-pixel accuracy
 
+    final_coor_of_corners = [[], []]
+    valid_R_coor = np.where(R > 0)  # some R value is extremely small and float will round them to 0, so we eliminate them
+    for i, j in zip(*valid_R_coor):
+        if i == 0 or i == R.shape[0] - 1 or j == 0 or j == R.shape[1] - 1: continue
+        # 3x3 window of the point
+        window = R[i-1:i+2, j-1:j+2]
+        # check if the center pixel is the maximum
+        if window[1, 1] == np.max(window):
+            final_coor_of_corners[0].append(i)
+            final_coor_of_corners[1].append(j)
+    
+    def subPixelAcc(x_neighbors, y_neighbors):
+        def subPixelAcc1D(one_d_neighbors):
+            # coefficients of input's quatric function
+            a = (one_d_neighbors[2] + one_d_neighbors[0] - 2*one_d_neighbors[1]) / 2
+            b = (one_d_neighbors[2] - one_d_neighbors[0]) / 2
+            
+            sub_coor = -b / (2*a)
+            
+            return a, b, sub_coor
+        
+        a, c, x = subPixelAcc1D(x_neighbors)
+        b, f, y = subPixelAcc1D(y_neighbors)
+        
+        r = a*x**2 + b*y**2 + c*x + f*y + x_neighbors[1]
+        
+        return x, y, r
+    
+    z = 0
+    sub_corners = np.zeros((len(final_coor_of_corners[0]), 3))
+    for i, j in zip(*final_coor_of_corners):
+        if i == 0 or i == R.shape[0] - 1 or j == 0 or j == R.shape[1] - 1: continue
+        # sub-pixel accuracy
+        x, y, r = subPixelAcc(R[i, j-1:j+2], R[i-1:i+2, j])
+        sub_corners[z] = np.array([j - y, i + x, r])  # reverse x and y because matplot's axis is different from numpy
+        z += 1
+
     # TODO: perform thresholding and discard weak corners
+    
+    corners = sub_corners[sub_corners[:, 2] > threshold]
+    
 
     return sorted(corners, key = lambda corner : corner[2], reverse = True)
 
@@ -190,7 +242,7 @@ def load_corners(inputfile) :
 ################################################################################
 def main() :
     parser = argparse.ArgumentParser(description = 'COMP3317 Assignment 2')
-    parser.add_argument('-i', '--image', type = str, default = 'grid1.jpg',
+    parser.add_argument('-i', '--image', type = str, default = str(Path(__file__).parent / 'grid1.jpg'),
                         help = 'filename of input image')
     parser.add_argument('-s', '--sigma', type = float, default = 1.0,
                         help = 'sigma value for Gaussain filter (default = 1.0)')
@@ -220,8 +272,8 @@ def main() :
     print('perform RGB to grayscale conversion...')
     img_gray = rgb2gray(img_color)
     # uncomment the following 2 lines to show the grayscale image
-    plt.imshow(np.float32(img_gray), cmap = 'gray')
-    plt.show()
+    # plt.imshow(np.float32(img_gray), cmap = 'gray')
+    # plt.show()
 
     # perform corner detection
     print('perform Harris corner detection...')
