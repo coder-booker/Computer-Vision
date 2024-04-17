@@ -116,7 +116,8 @@ def gen_correspondences(Hxz, Hyz, corners) :
     ref3D = np.concatenate((xz_corners_3D_cart, yz_corners_3D_cart))
     ref2D = find_nearest_corner(np.concatenate((xz_corners_2D, yz_corners_2D)), corners)
 
-
+    # print(ref3D)
+    # print(ref2D)
     return ref3D, ref2D
 
 
@@ -316,28 +317,28 @@ def pick_corners(img_color, corners) :
     ref3D = np.array([(9.5, 0, 7.5), (0.5, 0, 7.5), (9.5, 0, 0.5), (0.5, 0, 0.5),
                       (0, 0.5, 7.5), (0, 9.5, 7.5), (0, 0.5, 0.5), (0, 9.5, 0.5)],
                       dtype = np.float64)
-    ref2D = np.array([(145.0788, 129.7413), (318.3315, 102.5841), (149.0518, 298.0115), (315.0561, 254.6429), 
-                      (336.2306, 103.5627), (494.1933, 145.1426), (331.6419, 254.9929), (481.9233, 314.6322)], 
-                     dtype = np.float64)
-    # ref2D = np.zeros([8, 2], dtype = np.float64)
-    # for i in range(8) :
-    #     selected = False
-    #     while not selected :
-    #         # ask user to pick the corner on the image
-    #         print('please click on the image point for ({}, {}, {})...'.format(
-    #               ref3D[i, 0], ref3D[i, 1], ref3D[i, 2]))
-    #         plt.figure(fig.number)
-    #         pt = plt.ginput(n = 1, timeout = - 1)
-    #         # locate the nearest detected corner
-    #         pt = find_nearest_corner(np.array(pt), corners)
-    #         if pt[0, 0] > 0 :
-    #             plt.figure(fig.number)
-    #             plt.plot(pt[:, 0], pt[:, 1], 'bx', markersize = 5)
-    #             ref2D[i, :] = pt[0]
-    #             selected = True
-    #         else :
-    #             print('cannot locate detected corner in the vicinity...')
-    #         # print(ref2D[i])
+    # ref2D = np.array([(145.0788, 129.7413), (318.3315, 102.5841), (149.0518, 298.0115), (315.0561, 254.6429), 
+    #                   (336.2306, 103.5627), (494.1933, 145.1426), (331.6419, 254.9929), (481.9233, 314.6322)], 
+    #                  dtype = np.float64)
+    ref2D = np.zeros([8, 2], dtype = np.float64)
+    for i in range(8) :
+        selected = False
+        while not selected :
+            # ask user to pick the corner on the image
+            print('please click on the image point for ({}, {}, {})...'.format(
+                  ref3D[i, 0], ref3D[i, 1], ref3D[i, 2]))
+            plt.figure(fig.number)
+            pt = plt.ginput(n = 1, timeout = - 1)
+            # locate the nearest detected corner
+            pt = find_nearest_corner(np.array(pt), corners)
+            if pt[0, 0] > 0 :
+                plt.figure(fig.number)
+                plt.plot(pt[:, 0], pt[:, 1], 'bx', markersize = 5)
+                ref2D[i, :] = pt[0]
+                selected = True
+            else :
+                print('cannot locate detected corner in the vicinity...')
+            # print(ref2D[i])
         
     plt.close(fig)
 
